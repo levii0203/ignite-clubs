@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,10 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "@/hooks/use-toast";
 
 const SignUp = () => {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -31,6 +34,57 @@ const SignUp = () => {
   const handleBack = () => {
     if (step > 1) {
       setStep(step - 1);
+    }
+  };
+
+  const handleSignUp = async () => {
+    setLoading(true);
+    try {
+      const payload: any = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+      };
+
+      if (formData.userType === "student") {
+        payload.role = "user";
+      } else if (formData.userType === "club-admin") {
+        payload.role = "admin";
+        payload.looking_for_club = false;
+      }
+
+      const response = await fetch("http://localhost:3000/v1/users/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (data.statusCode && data.statusCode >= 400) {
+        toast({
+          title: "Error",
+          description: data.message || "Failed to sign up",
+          variant: "destructive",
+        });
+      } else if (data.message === "user signup successfully") {
+        toast({
+          title: "Success",
+          description: "Account created successfully!",
+        });
+        navigate("/login");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to connect to server",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -184,8 +238,12 @@ const SignUp = () => {
                   Continue <ChevronRight className="ml-2 h-4 w-4" />
                 </Button>
               ) : (
-                <Button className="flex-1 btn-primary py-3">
-                  Create Account
+                <Button 
+                  className="flex-1 btn-primary py-3"
+                  onClick={handleSignUp}
+                  disabled={loading}
+                >
+                  {loading ? "Creating Account..." : "Create Account"}
                 </Button>
               )}
             </div>

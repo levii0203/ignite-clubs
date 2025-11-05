@@ -1,16 +1,61 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { toast } from "@/hooks/use-toast";
 
 const Login = () => {
+  const navigate = useNavigate();
+  const { setToken } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await fetch("http://localhost:3000/v1/users/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (data.statusCode && data.statusCode >= 400) {
+        toast({
+          title: "Error",
+          description: data.message || "Invalid credentials",
+          variant: "destructive",
+        });
+      } else if (data.message === "User logged in successfully" && data.token) {
+        setToken(data.token);
+        toast({
+          title: "Success",
+          description: "Logged in successfully!",
+        });
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to connect to server",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero p-4">
@@ -27,7 +72,7 @@ const Login = () => {
             <CardDescription>Sign in to your ClubConnect account</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-4">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div>
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -37,6 +82,7 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="glow-input mt-2"
+                  required
                 />
               </div>
               
@@ -50,6 +96,7 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="glow-input pr-10"
+                    required
                   />
                   <Button
                     type="button"
@@ -75,11 +122,11 @@ const Login = () => {
                   Forgot password?
                 </Link>
               </div>
-            </div>
 
-            <Button className="w-full btn-primary py-3">
-              Sign In
-            </Button>
+              <Button type="submit" className="w-full btn-primary py-3" disabled={loading}>
+                {loading ? "Signing In..." : "Sign In"}
+              </Button>
+            </form>
 
             <div className="relative">
               <Separator />

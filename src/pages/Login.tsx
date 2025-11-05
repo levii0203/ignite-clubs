@@ -22,7 +22,7 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:3000/v1/users/login", {
+      const response = await fetch("http://localhost:5000/v1/users/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -35,7 +35,7 @@ const Login = () => {
       if (data.statusCode && data.statusCode >= 400) {
         toast({
           title: "Error",
-          description: data.message || "Invalid credentials",
+          description: data.message,
           variant: "destructive",
         });
       } else if (data.message === "User logged in successfully" && data.token) {
@@ -46,10 +46,10 @@ const Login = () => {
         });
         navigate("/dashboard");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to connect to server",
+        description: error.message || "Failed to connect to server",
         variant: "destructive",
       });
     } finally {

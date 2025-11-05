@@ -54,7 +54,7 @@ const SignUp = () => {
         payload.looking_for_club = false;
       }
 
-      const response = await fetch("http://localhost:3000/v1/users/signup", {
+      const response = await fetch("http://localhost:5000/v1/users/signup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -67,7 +67,7 @@ const SignUp = () => {
       if (data.statusCode && data.statusCode >= 400) {
         toast({
           title: "Error",
-          description: data.message || "Failed to sign up",
+          description: data.message,
           variant: "destructive",
         });
       } else if (data.message === "user signup successfully") {
@@ -77,10 +77,10 @@ const SignUp = () => {
         });
         navigate("/login");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to connect to server",
+        description: error.message || "Failed to connect to server",
         variant: "destructive",
       });
     } finally {

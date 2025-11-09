@@ -79,24 +79,9 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    // Fetch user data and clubs
-    const fetchData = async () => {
+    // Fetch clubs
+    const fetchClubs = async () => {
       try {
-        // Fetch user data only if token exists
-        if (token) {
-          const userResponse = await fetch("http://localhost:5000/v1/users/me", {
-            headers: {
-              "Authorization": `Bearer ${token}`,
-            },
-          });
-          
-          if (userResponse.ok) {
-            const userData = await userResponse.json();
-            setUserData(userData);
-          }
-        }
-
-        // Fetch clubs
         const clubsResponse = await fetch("http://localhost:5000/v1/club/get/all");
         const clubsData = await clubsResponse.json();
         
@@ -106,7 +91,7 @@ const Dashboard = () => {
       } catch (error: any) {
         toast({
           title: "Error",
-          description: error.message || "Failed to fetch data",
+          description: error.message || "Failed to fetch clubs",
           variant: "destructive",
         });
       } finally {
@@ -114,8 +99,8 @@ const Dashboard = () => {
       }
     };
 
-    fetchData();
-  }, [token, toast]);
+    fetchClubs();
+  }, [toast]);
 
   const mappedClubs = clubs.map(mapClub);
 

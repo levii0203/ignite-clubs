@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, CheckCircle, Upload, Send } from "lucide-react";
+import { ArrowLeft, CheckCircle, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,8 +26,7 @@ const Apply = () => {
     whyJoin: "",
     experience: "",
     availability: "",
-    goals: "",
-    resume: null as File | null
+    goals: ""
   });
 
   const totalSteps = 4;
@@ -52,18 +51,48 @@ const Apply = () => {
     }
   };
 
-  const handleSubmit = () => {
-    // Simulate form submission
-    setIsSubmitted(true);
-    toast({
-      title: "Application Submitted!",
-      description: "We'll review your application and get back to you within 5-7 business days.",
-    });
-  };
+  const handleSubmit = async () => {
+    try {
+      const applicationId = crypto.randomUUID();
+      
+      const payload = {
+        id: applicationId,
+        club_id: clubId,
+        full_name: formData.fullName,
+        email: formData.email,
+        phone_number: formData.phone,
+        academic_year: formData.year,
+        field_of_study: formData.major,
+        gpa: formData.gpa ? parseFloat(formData.gpa) : undefined,
+        reason: formData.whyJoin,
+        experience: formData.experience || undefined,
+        time_commitment: formData.availability || undefined,
+        goals: formData.goals || undefined
+      };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFormData({ ...formData, resume: e.target.files[0] });
+      const response = await fetch("http://localhost:5000/v1/club/join", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to submit application");
+      }
+
+      setIsSubmitted(true);
+      toast({
+        title: "Application Submitted!",
+        description: "We'll review your application and get back to you within 5-7 business days.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to submit application",
+        variant: "destructive",
+      });
     }
   };
 
@@ -341,32 +370,6 @@ const Apply = () => {
                       onChange={(e) => setFormData({...formData, goals: e.target.value})}
                       className="glow-input mt-2 min-h-[80px]"
                     />
-                  </div>
-
-                  {/* Resume Upload */}
-                  <div>
-                    <Label htmlFor="resume">Resume (Optional)</Label>
-                    <div className="mt-2">
-                      <div className="border-2 border-dashed border-border hover:border-primary/50 rounded-lg p-6 text-center transition-colors cursor-pointer bg-muted/30">
-                        <input
-                          id="resume"
-                          type="file"
-                          accept=".pdf,.doc,.docx"
-                          onChange={handleFileUpload}
-                          className="hidden"
-                        />
-                        <label htmlFor="resume" className="cursor-pointer">
-                          <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                          <p className="text-sm text-muted-foreground">
-                            {formData.resume ? (
-                              <span className="text-primary font-medium">{formData.resume.name}</span>
-                            ) : (
-                              <>Click to upload or drag and drop<br />PDF, DOC, DOCX (max 5MB)</>
-                            )}
-                          </p>
-                        </label>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Application Summary */}

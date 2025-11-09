@@ -12,79 +12,24 @@ import Navigation from "@/components/Navigation";
 import techClub from "@/assets/club-tech.jpg";
 import artsClub from "@/assets/club-arts.jpg";
 import businessClub from "@/assets/club-business.jpg";
+import { useToast } from "@/hooks/use-toast";
 
-const clubs = [
-  {
-    id: 1,
-    name: "Tech Innovators Club",
-    description: "Building the future with code, AI, and innovation. Join us for hackathons, workshops, and networking events with industry professionals.",
-    members: 340,
-    category: "Technology",
-    location: "Engineering Building",
-    type: "Academic",
-    mode: "Hybrid",
-    image: techClub,
-    tags: ["Programming", "AI", "Startups", "Hackathons"],
-    featured: true,
-    recruiting: true
-  },
-  {
-    id: 2,
-    name: "Creative Arts Society",
-    description: "Express yourself through various art forms. From painting to digital design, unleash your creativity and showcase your work.",
-    members: 220,
-    category: "Arts & Culture",
-    location: "Arts Center",
-    type: "Creative",
-    mode: "In-Person",
-    image: artsClub,
-    tags: ["Design", "Digital Art", "Gallery", "Exhibitions"],
-    featured: true,
-    recruiting: true
-  },
-  {
-    id: 3,
-    name: "Business Leaders Network",
-    description: "Develop leadership skills and business acumen. Connect with entrepreneurs and industry professionals to build your network.",
-    members: 185,
-    category: "Business",
-    location: "Business School",
-    type: "Professional",
-    mode: "Hybrid",
-    image: businessClub,
-    tags: ["Leadership", "Networking", "Entrepreneurship", "Career"],
-    featured: false,
-    recruiting: true
-  },
-  {
-    id: 4,
-    name: "Environmental Action Group",
-    description: "Making a difference for our planet. Join sustainability initiatives, organize eco-friendly events, and create lasting change.",
-    members: 156,
-    category: "Environmental",
-    location: "Science Building",
-    type: "Service",
-    mode: "In-Person",
-    image: techClub,
-    tags: ["Sustainability", "Climate Action", "Volunteering"],
-    featured: false,
-    recruiting: true
-  },
-  {
-    id: 5,
-    name: "International Students Association",
-    description: "Celebrating diversity and cultural exchange. Connect with students from around the world and share your heritage.",
-    members: 278,
-    category: "Cultural",
-    location: "International Center",
-    type: "Social",
-    mode: "Hybrid",
-    image: artsClub,
-    tags: ["Culture", "International", "Diversity", "Events"],
-    featured: false,
-    recruiting: false
-  }
-];
+interface Club {
+  id: string;
+  club_name: string;
+  no_of_members: number;
+  about_us: string;
+  meeting_mode: string;
+  location: string;
+  interests_and_skills: string[];
+  requirements?: string[];
+  member_benefits?: string[];
+  recent_activities?: any[];
+  leadership_team?: any[];
+  upcoming_events?: any[];
+  created_at: string;
+  updated_at: string;
+}
 
 const categories = ["All", "Technology", "Arts & Culture", "Business", "Environmental", "Cultural"];
 const types = ["Academic", "Creative", "Professional", "Service", "Social"];
@@ -93,12 +38,45 @@ const modes = ["In-Person", "Online", "Hybrid"];
 const Dashboard = () => {
   const { token } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedModes, setSelectedModes] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [userData, setUserData] = useState<any>(null);
+  const [clubs, setClubs] = useState<Club[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Map club images based on club name or interests
+  const getClubImage = (club: Club) => {
+    const name = club.club_name.toLowerCase();
+    const interests = club.interests_and_skills.map(i => i.toLowerCase()).join(" ");
+    
+    if (name.includes("tech") || name.includes("innovator") || interests.includes("javascript") || interests.includes("ai")) {
+      return techClub;
+    } else if (name.includes("art") || name.includes("creative") || interests.includes("design") || interests.includes("music")) {
+      return artsClub;
+    } else {
+      return businessClub;
+    }
+  };
+
+  // Map API club to UI club format
+  const mapClub = (apiClub: Club) => ({
+    id: apiClub.id,
+    name: apiClub.club_name,
+    description: apiClub.about_us,
+    members: apiClub.no_of_members,
+    category: apiClub.interests_and_skills[0] || "General",
+    location: apiClub.location,
+    type: "Academic",
+    mode: apiClub.meeting_mode,
+    image: getClubImage(apiClub),
+    tags: apiClub.interests_and_skills.slice(0, 4),
+    featured: apiClub.no_of_members > 100,
+    recruiting: true
+  });
 
   useEffect(() => {
     if (!token) {
@@ -106,28 +84,45 @@ const Dashboard = () => {
       return;
     }
 
-    // Fetch user data using token
-    const fetchUserData = async () => {
+    // Fetch user data and clubs
+    const fetchData = async () => {
       try {
-        const response = await fetch("http://localhost:3000/v1/users/me", {
+        // Fetch user data
+        const userResponse = await fetch("http://localhost:5000/v1/users/me", {
           headers: {
             "Authorization": `Bearer ${token}`,
           },
         });
         
-        if (response.ok) {
-          const data = await response.json();
-          setUserData(data);
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          setUserData(userData);
         }
-      } catch (error) {
-        console.error("Failed to fetch user data:", error);
+
+        // Fetch clubs
+        const clubsResponse = await fetch("http://localhost:5000/v1/club/get/all");
+        const clubsData = await clubsResponse.json();
+        
+        if (clubsData.clubs) {
+          setClubs(clubsData.clubs);
+        }
+      } catch (error: any) {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to fetch data",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchUserData();
-  }, [token, navigate]);
+    fetchData();
+  }, [token, navigate, toast]);
 
-  const filteredClubs = clubs.filter(club => {
+  const mappedClubs = clubs.map(mapClub);
+
+  const filteredClubs = mappedClubs.filter(club => {
     const matchesSearch = club.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          club.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          club.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -139,7 +134,7 @@ const Dashboard = () => {
     return matchesSearch && matchesCategory && matchesType && matchesMode;
   });
 
-  const featuredClubs = clubs.filter(club => club.featured);
+  const featuredClubs = mappedClubs.filter(club => club.featured);
   const upcomingEvents = [
     { title: "Tech Talk: AI in Healthcare", date: "Nov 15", club: "Tech Innovators Club" },
     { title: "Art Gallery Opening", date: "Nov 18", club: "Creative Arts Society" },
@@ -258,12 +253,21 @@ const Dashboard = () => {
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <p className="text-muted-foreground">
-                    {filteredClubs.length} clubs found
+                    {loading ? "Loading clubs..." : `${filteredClubs.length} clubs found`}
                   </p>
                 </div>
 
                 <div className="grid gap-6">
-                  {filteredClubs.map((club) => (
+                  {loading ? (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground">Loading clubs...</p>
+                    </div>
+                  ) : filteredClubs.length === 0 ? (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground">No clubs found matching your criteria</p>
+                    </div>
+                  ) : (
+                    filteredClubs.map((club) => (
                     <Card key={club.id} className="club-card hover:cursor-pointer">
                       <CardContent className="p-0">
                         <div className="flex">
@@ -345,7 +349,8 @@ const Dashboard = () => {
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </div>

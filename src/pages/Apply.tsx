@@ -10,10 +10,12 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import Navigation from "@/components/Navigation";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Apply = () => {
   const { clubId } = useParams();
   const { toast } = useToast();
+  const { token } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [formData, setFormData] = useState({
@@ -73,7 +75,8 @@ const Apply = () => {
       const response = await fetch("http://localhost:5000/v1/club/join", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
         },
         body: JSON.stringify(payload)
       });

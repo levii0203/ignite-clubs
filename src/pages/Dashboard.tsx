@@ -79,24 +79,21 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-
     // Fetch user data and clubs
     const fetchData = async () => {
       try {
-        // Fetch user data
-        const userResponse = await fetch("http://localhost:5000/v1/users/me", {
-          headers: {
-            "Authorization": `Bearer ${token}`,
-          },
-        });
-        
-        if (userResponse.ok) {
-          const userData = await userResponse.json();
-          setUserData(userData);
+        // Fetch user data only if token exists
+        if (token) {
+          const userResponse = await fetch("http://localhost:5000/v1/users/me", {
+            headers: {
+              "Authorization": `Bearer ${token}`,
+            },
+          });
+          
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            setUserData(userData);
+          }
         }
 
         // Fetch clubs
@@ -118,7 +115,7 @@ const Dashboard = () => {
     };
 
     fetchData();
-  }, [token, navigate, toast]);
+  }, [token, toast]);
 
   const mappedClubs = clubs.map(mapClub);
 
